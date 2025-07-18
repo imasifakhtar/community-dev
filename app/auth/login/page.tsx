@@ -24,7 +24,6 @@ export default function LoginPage() {
       setSuccess("Login successful!");
       setEmail("");
       setPassword("");
-      // Optionally, store token or redirect here
     } catch (err: unknown) {
       let msg = "Login failed";
       if (err instanceof Error) msg = err.message;
