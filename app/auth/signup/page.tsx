@@ -1,10 +1,24 @@
 "use client";
+import * as React from "react";
 import { useState } from "react";
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
+import { ChevronDown, User, Building2, Mail, Lock, Phone, Calendar as CalendarIcon, TrendingUp, Briefcase } from "lucide-react";
 
 export default function SignupPage() {
   const [role, setRole] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
+  const [phone, setPhone] = useState("");
+  const [dob, setDob] = useState<Date | undefined>(undefined);
+  const [company, setCompany] = useState("");
+  const [open, setOpen] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [loading, setLoading] = useState(false);
@@ -19,11 +33,25 @@ export default function SignupPage() {
       setLoading(false);
       return;
     }
+    if (!dob) {
+      setError("Please select your date of birth.");
+      setLoading(false);
+      return;
+    }
     try {
       const res = await fetch("/api/auth/signup", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password, role }),
+        body: JSON.stringify({
+          email,
+          password,
+          role,
+          firstName,
+          lastName,
+          phone,
+          dob,
+          company,
+        }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || "Signup failed");
@@ -31,6 +59,11 @@ export default function SignupPage() {
       setEmail("");
       setPassword("");
       setRole("");
+      setFirstName("");
+      setLastName("");
+      setPhone("");
+      setDob(undefined);
+      setCompany("");
     } catch (err: unknown) {
       let msg = "Signup failed";
       if (err instanceof Error) msg = err.message;
@@ -41,58 +74,229 @@ export default function SignupPage() {
   };
 
   return (
-    <div className="max-w-md mx-auto mt-10 p-6 bg-white rounded shadow">
-      <h2 className="text-2xl font-bold mb-4">Sign Up</h2>
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <div>
-          <label className="block mb-1 font-medium">Sign up as:</label>
-          <div className="flex gap-4">
-            <button
-              type="button"
-              className={`px-4 py-2 border rounded ${role === "investor" ? "bg-blue-500 text-white" : "bg-gray-100"}`}
-              onClick={() => setRole("investor")}
-            >
-              Investor
-            </button>
-            <button
-              type="button"
-              className={`px-4 py-2 border rounded ${role === "entrepreneur" ? "bg-blue-500 text-white" : "bg-gray-100"}`}
-              onClick={() => setRole("entrepreneur")}
-            >
-              Entrepreneur
-            </button>
-          </div>
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 py-8 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-lg mx-auto">
+        {/* Header Section */}
+        <div className="text-center mb-8">
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">Join Our Platform</h1>
+          <p className="text-gray-600">Create your account to get started</p>
         </div>
-        <div>
-          <label className="block mb-1 font-medium">Email</label>
-          <input
-            type="email"
-            className="w-full border px-3 py-2 rounded"
-            value={email}
-            onChange={e => setEmail(e.target.value)}
-            required
-          />
-        </div>
-        <div>
-          <label className="block mb-1 font-medium">Password</label>
-          <input
-            type="password"
-            className="w-full border px-3 py-2 rounded"
-            value={password}
-            onChange={e => setPassword(e.target.value)}
-            required
-          />
-        </div>
-        {error && <div className="text-red-500">{error}</div>}
-        {success && <div className="text-green-600">{success}</div>}
-        <button
-          type="submit"
-          className="w-full bg-blue-600 text-white py-2 rounded font-semibold"
-          disabled={loading}
-        >
-          {loading ? "Signing up..." : "Sign Up"}
-        </button>
-      </form>
+
+        <Card className="shadow-xl border-0 bg-white/80 backdrop-blur-sm">
+          <CardHeader className="pb-6">
+            <CardTitle className="text-2xl font-semibold text-center text-gray-800">Sign Up</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <div onSubmit={handleSubmit} className="space-y-6">
+              {/* Role Selection */}
+              <div className="space-y-3">
+                <Label className="text-sm font-medium text-gray-700">Sign up as:</Label>
+                <div className="grid grid-cols-2 gap-3">
+                  <Button
+                    type="button"
+                    variant={role === "investor" ? "default" : "outline"}
+                    onClick={() => setRole("investor")}
+                    className={`h-12 flex items-center justify-center gap-2 transition-all duration-200 ${
+                      role === "investor" 
+                        ? "bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white shadow-lg" 
+                        : "hover:bg-blue-50 hover:border-blue-300 hover:shadow-md"
+                    }`}
+                  >
+                    <TrendingUp className="h-4 w-4" />
+                    Investor
+                  </Button>
+                  <Button
+                    type="button"
+                    variant={role === "entrepreneur" ? "default" : "outline"}
+                    onClick={() => setRole("entrepreneur")}
+                    className={`h-12 flex items-center justify-center gap-2 transition-all duration-200 ${
+                      role === "entrepreneur" 
+                        ? "bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white shadow-lg" 
+                        : "hover:bg-blue-50 hover:border-blue-300 hover:shadow-md"
+                    }`}
+                  >
+                    <Briefcase className="h-4 w-4" />
+                    Entrepreneur
+                  </Button>
+                </div>
+              </div>
+
+              {/* Name Fields */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="firstName" className="text-sm font-medium text-gray-700">First Name</Label>
+                  <div className="relative">
+                    <User className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                    <Input
+                      id="firstName"
+                      value={firstName}
+                      onChange={e => setFirstName(e.target.value)}
+                      className="pl-10 h-11 border-gray-300 focus:border-blue-500 focus:ring-blue-500 transition-colors"
+                      placeholder="Enter first name"
+                      required
+                    />
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="lastName" className="text-sm font-medium text-gray-700">Last Name</Label>
+                  <div className="relative">
+                    <User className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                    <Input
+                      id="lastName"
+                      value={lastName}
+                      onChange={e => setLastName(e.target.value)}
+                      className="pl-10 h-11 border-gray-300 focus:border-blue-500 focus:ring-blue-500 transition-colors"
+                      placeholder="Enter last name"
+                      required
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Contact Fields */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="phone" className="text-sm font-medium text-gray-700">Phone</Label>
+                  <div className="relative">
+                    <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                    <Input
+                      id="phone"
+                      type="tel"
+                      value={phone}
+                      onChange={e => setPhone(e.target.value)}
+                      className="pl-10 h-11 border-gray-300 focus:border-blue-500 focus:ring-blue-500 transition-colors"
+                      placeholder="Enter phone number"
+                      required
+                    />
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="company" className="text-sm font-medium text-gray-700">Company Name</Label>
+                  <div className="relative">
+                    <Building2 className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                    <Input
+                      id="company"
+                      value={company}
+                      onChange={e => setCompany(e.target.value)}
+                      className="pl-10 h-11 border-gray-300 focus:border-blue-500 focus:ring-blue-500 transition-colors"
+                      placeholder="Enter company name"
+                      required
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Email Field */}
+              <div className="space-y-2">
+                <Label htmlFor="email" className="text-sm font-medium text-gray-700">Email Address</Label>
+                <div className="relative">
+                  <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                  <Input
+                    id="email"
+                    type="email"
+                    value={email}
+                    onChange={e => setEmail(e.target.value)}
+                    className="pl-10 h-11 border-gray-300 focus:border-blue-500 focus:ring-blue-500 transition-colors"
+                    placeholder="Enter your email"
+                    required
+                  />
+                </div>
+              </div>
+
+              {/* Password Field */}
+              <div className="space-y-2">
+                <Label htmlFor="password" className="text-sm font-medium text-gray-700">Password</Label>
+                <div className="relative">
+                  <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                  <Input
+                    id="password"
+                    type="password"
+                    value={password}
+                    onChange={e => setPassword(e.target.value)}
+                    className="pl-10 h-11 border-gray-300 focus:border-blue-500 focus:ring-blue-500 transition-colors"
+                    placeholder="Create a password"
+                    required
+                  />
+                </div>
+              </div>
+
+              {/* Date of Birth */}
+              <div className="space-y-2">
+                <Label htmlFor="dob" className="text-sm font-medium text-gray-700">Date of Birth</Label>
+                <Popover open={open} onOpenChange={setOpen}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      id="dob"
+                      className="w-full h-11 justify-between font-normal border-gray-300 hover:border-blue-300 focus:border-blue-500 focus:ring-blue-500 transition-colors"
+                      type="button"
+                    >
+                      <div className="flex items-center gap-2">
+                        <CalendarIcon className="h-4 w-4 text-gray-400" />
+                        <span className={dob ? "text-gray-900" : "text-gray-500"}>
+                          {dob ? dob.toLocaleDateString() : "Select your birth date"}
+                        </span>
+                      </div>
+                      <ChevronDown className="h-4 w-4 text-gray-400" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto overflow-hidden p-0 shadow-xl border-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={dob}
+                      captionLayout="dropdown"
+                      onSelect={(date) => {
+                        setDob(date!);
+                        setOpen(false);
+                      }}
+                      className="bg-white"
+                    />
+                  </PopoverContent>
+                </Popover>
+              </div>
+
+              {/* Error and Success Messages */}
+              {error && (
+                <div className="bg-red-50 border border-red-200 rounded-lg p-3">
+                  <div className="text-red-800 text-sm font-medium">{error}</div>
+                </div>
+              )}
+              {success && (
+                <div className="bg-green-50 border border-green-200 rounded-lg p-3">
+                  <div className="text-green-800 text-sm font-medium">{success}</div>
+                </div>
+              )}
+
+              {/* Submit Button */}
+              <Button
+                type="button"
+                onClick={handleSubmit}
+                className="w-full h-12 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-semibold rounded-lg shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-[1.02] active:scale-[0.98]"
+                disabled={loading}
+              >
+                {loading ? (
+                  <div className="flex items-center justify-center gap-2">
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                    Signing up...
+                  </div>
+                ) : (
+                  "Create Account"
+                )}
+              </Button>
+            </div>
+
+            {/* Footer */}
+            <div className="text-center pt-4 border-t border-gray-200">
+              <p className="text-sm text-gray-600">
+                Already have an account?{" "}
+                <a href="#" className="font-medium text-blue-600 hover:text-blue-500 transition-colors">
+                  Sign in
+                </a>
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 }

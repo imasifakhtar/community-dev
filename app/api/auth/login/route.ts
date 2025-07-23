@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import mongoose from "mongoose";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
+import User from "../../../models/User";
 
 const MONGODB_URI = process.env.MONGODB_URI!;
 const JWT_SECRET = process.env.JWT_SECRET || "changeme";
@@ -10,16 +11,6 @@ const JWT_SECRET = process.env.JWT_SECRET || "changeme";
 if (!mongoose.connection.readyState) {
   mongoose.connect(MONGODB_URI, { dbName: "community" });
 }
-
-// User Schema
-const userSchema = new mongoose.Schema({
-  email: { type: String, required: true, unique: true },
-  password: { type: String, required: true },
-  role: { type: String, enum: ["investor", "entrepreneur"], required: true },
-  isAdmin: { type: Boolean, default: false },
-});
-
-const User = mongoose.models.User || mongoose.model("User", userSchema);
 
 export async function POST(req: Request) {
   try {
@@ -41,7 +32,16 @@ export async function POST(req: Request) {
       JWT_SECRET,
       { expiresIn: "1d" }
     );
-    return NextResponse.json({ token, user: { email: user.email, role: user.role, isAdmin: user.isAdmin } });
+    // Set JWT as HttpOnly cookie
+    const response = NextResponse.json({ user: { email: user.email, role: user.role, isAdmin: user.isAdmin, firstName: user.firstName, lastName: user.lastName } });
+    response.cookies.set("token", token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production" ? true : false,
+      sameSite: "lax",
+      path: "/",
+      maxAge: 60 * 60 * 24, // 1 day
+    });
+    return response;
   } catch (err: unknown) {
     let message = "Login error";
     if (err instanceof Error) message = err.message;

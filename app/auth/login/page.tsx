@@ -24,6 +24,10 @@ export default function LoginPage() {
       setSuccess("Login successful!");
       setEmail("");
       setPassword("");
+      // Redirect to /feed if user info is present
+      if (data.user) {
+        window.location.href = "/feed";
+      }
     } catch (err: unknown) {
       let msg = "Login failed";
       if (err instanceof Error) msg = err.message;

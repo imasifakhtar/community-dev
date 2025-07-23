@@ -1,65 +1,29 @@
-"use client";
-import InfoMenu from "@/components/navbar-components/info-menu";
-import Logo from "@/components/navbar-components/logo";
-import NotificationMenu from "@/components/navbar-components/notification-menu";
-import UserMenu from "@/components/navbar-components/user-menu";
-import { Button } from "@/components/ui/button";
+import InfoMenu from "@/components/navbar-components/info-menu"
+import Logo from "@/components/navbar-components/logo"
+import NotificationMenu from "@/components/navbar-components/notification-menu"
+import UserMenu from "@/components/navbar-components/user-menu"
+import { Button } from "@/components/ui/button"
 import {
   NavigationMenu,
   NavigationMenuItem,
   NavigationMenuLink,
   NavigationMenuList,
-} from "@/components/ui/navigation-menu";
+} from "@/components/ui/navigation-menu"
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
-} from "@/components/ui/popover";
-import { useEffect, useState } from "react";
+} from "@/components/ui/popover"
 
-const defaultLinks = [
-  { href: "/", label: "Home" },
-  { href: "/features", label: "Features" },
-  { href: "/pricing", label: "Pricing" },
-  { href: "/about", label: "About" },
-];
-const userLinks = [
-  { href: "/feed", label: "Feed" },
-  { href: "/profile", label: "Profile" },
-];
+// Navigation links array to be used in both desktop and mobile menus
+const navigationLinks = [
+  { href: "#", label: "Home" },
+  { href: "#", label: "Features" },
+  { href: "#", label: "Pricing" },
+  { href: "#", label: "About" },
+]
 
-export default function Navbar() {
-  const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    async function fetchUser() {
-      setLoading(true);
-      try {
-        const res = await fetch("/api/auth/me");
-        if (res.ok) {
-          const data = await res.json();
-          setUser(data.user);
-        } else {
-          setUser(null);
-        }
-      } catch {
-        setUser(null);
-      } finally {
-        setLoading(false);
-      }
-    }
-    fetchUser();
-  }, []);
-
-  const handleLogout = async () => {
-    try {
-      await fetch("/api/auth/logout", { method: "POST" });
-    } catch {}
-    setUser(null);
-    window.location.href = "/auth/login";
-  };
-
+export default function Component() {
   return (
     <header className="border-b px-4 md:px-6">
       <div className="flex h-16 items-center justify-between gap-4">
@@ -103,7 +67,7 @@ export default function Navbar() {
             <PopoverContent align="start" className="w-36 p-1 md:hidden">
               <NavigationMenu className="max-w-none *:w-full">
                 <NavigationMenuList className="flex-col items-start gap-0 md:gap-2">
-                  {(user ? userLinks : defaultLinks).map((link, index) => (
+                  {navigationLinks.map((link, index) => (
                     <NavigationMenuItem key={index} className="w-full">
                       <NavigationMenuLink href={link.href} className="py-1.5">
                         {link.label}
@@ -122,7 +86,7 @@ export default function Navbar() {
             {/* Navigation menu */}
             <NavigationMenu className="max-md:hidden">
               <NavigationMenuList className="gap-2">
-                {(user ? userLinks : defaultLinks).map((link, index) => (
+                {navigationLinks.map((link, index) => (
                   <NavigationMenuItem key={index}>
                     <NavigationMenuLink
                       href={link.href}
@@ -138,31 +102,16 @@ export default function Navbar() {
         </div>
         {/* Right side */}
         <div className="flex items-center gap-4">
-          {loading ? (
-            <div className="text-muted-foreground text-sm">Loading...</div>
-          ) : user ? (
-            <>
-              <div className="flex items-center gap-2">
-                {/* Info menu */}
-                <InfoMenu />
-                {/* Notification */}
-                <NotificationMenu />
-              </div>
-              {/* User menu with logout */}
-              <UserMenu onLogout={handleLogout} user={user} />
-            </>
-          ) : (
-            <>
-              <Button asChild variant="ghost" size="sm" className="text-sm">
-                <a href="/auth/login">Sign In</a>
-              </Button>
-              <Button asChild size="sm" className="text-sm">
-                <a href="/auth/signup">Get Started</a>
-              </Button>
-            </>
-          )}
+          <div className="flex items-center gap-2">
+            {/* Info menu */}
+            <InfoMenu />
+            {/* Notification */}
+            <NotificationMenu />
+          </div>
+          {/* User menu */}
+          <UserMenu />
         </div>
       </div>
     </header>
-  );
+  )
 }
