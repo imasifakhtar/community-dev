@@ -10,6 +10,8 @@ export interface IUser extends Document {
   phone: string;
   dob: Date;
   company: string;
+  avatarUrl?: string;
+  calendly?: string;
 }
 
 const UserSchema: Schema<IUser> = new Schema({
@@ -22,6 +24,8 @@ const UserSchema: Schema<IUser> = new Schema({
   phone: { type: String, required: true },
   dob: { type: Date, required: true },
   company: { type: String, required: true },
+  avatarUrl: { type: String },
+  calendly: { type: String },
 });
 
 const User: Model<IUser> = mongoose.models.User || mongoose.model<IUser>("User", UserSchema);

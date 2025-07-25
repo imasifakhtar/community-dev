@@ -7,7 +7,9 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
-import { ChevronDown, User, Building2, Mail, Lock, Phone, Calendar as CalendarIcon, TrendingUp, Briefcase } from "lucide-react";
+import { ChevronDown, User, Building2, Mail, Lock, Phone, Calendar as CalendarIcon, TrendingUp, Briefcase, CameraIcon } from "lucide-react";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import { useRef } from "react";
 
 export default function SignupPage() {
   const [role, setRole] = useState("");
@@ -22,6 +24,9 @@ export default function SignupPage() {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [loading, setLoading] = useState(false);
+  const [avatarFile, setAvatarFile] = useState<File | null>(null);
+  const [avatarPreview, setAvatarPreview] = useState<string | undefined>(undefined);
+  const avatarInputRef = useRef<HTMLInputElement>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -39,6 +44,44 @@ export default function SignupPage() {
       return;
     }
     try {
+      if (avatarFile) {
+        const formData = new FormData();
+        formData.append("email", email);
+        formData.append("password", password);
+        formData.append("role", role);
+        formData.append("firstName", firstName);
+        formData.append("lastName", lastName);
+        formData.append("phone", phone);
+        formData.append("dob", dob ? dob.toString() : "");
+        formData.append("company", company);
+        formData.append("avatar", avatarFile);
+        try {
+          const res = await fetch("/api/auth/signup", {
+            method: "POST",
+            body: formData,
+          });
+          const data = await res.json();
+          if (!res.ok) throw new Error(data.message || "Signup failed");
+          setSuccess("Signup successful! Please login.");
+          setEmail("");
+          setPassword("");
+          setRole("");
+          setFirstName("");
+          setLastName("");
+          setPhone("");
+          setDob(undefined);
+          setCompany("");
+          setAvatarFile(null);
+          setAvatarPreview(undefined);
+        } catch (cloudErr) {
+          console.error("Signup error:", cloudErr);
+          setError("Profile photo upload failed. Please try again.");
+          setLoading(false);
+          return;
+        }
+        setLoading(false);
+        return;
+      }
       const res = await fetch("/api/auth/signup", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -64,12 +107,21 @@ export default function SignupPage() {
       setPhone("");
       setDob(undefined);
       setCompany("");
+      setAvatarFile(null);
+      setAvatarPreview(undefined);
     } catch (err: unknown) {
       let msg = "Signup failed";
       if (err instanceof Error) msg = err.message;
       setError(msg);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      setAvatarFile(e.target.files[0]);
+      setAvatarPreview(URL.createObjectURL(e.target.files[0]));
     }
   };
 
@@ -255,6 +307,35 @@ export default function SignupPage() {
                 </Popover>
               </div>
 
+              {/* Profile Photo Upload */}
+              <div className="flex flex-col items-center gap-2 mb-2">
+                <Avatar className="size-20">
+                  {avatarPreview ? (
+                    <AvatarImage src={avatarPreview} alt="Profile" />
+                  ) : null}
+                  <AvatarFallback className="text-xl">
+                    {firstName ? firstName[0] : "U"}
+                    {lastName ? lastName[0] : ""}
+                  </AvatarFallback>
+                </Avatar>
+                <input
+                  type="file"
+                  accept="image/*"
+                  ref={avatarInputRef}
+                  className="hidden"
+                  onChange={handleAvatarChange}
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="mt-2"
+                  onClick={() => avatarInputRef.current?.click()}
+                >
+                  <CameraIcon className="w-4 h-4 mr-2" /> Upload Photo
+                </Button>
+              </div>
+
               {/* Error and Success Messages */}
               {error && (
                 <div className="bg-red-50 border border-red-200 rounded-lg p-3">
@@ -289,7 +370,7 @@ export default function SignupPage() {
             <div className="text-center pt-4 border-t border-gray-200">
               <p className="text-sm text-gray-600">
                 Already have an account?{" "}
-                <a href="#" className="font-medium text-blue-600 hover:text-blue-500 transition-colors">
+                <a href="/auth/login" className="font-medium text-blue-600 hover:text-blue-500 transition-colors">
                   Sign in
                 </a>
               </p>

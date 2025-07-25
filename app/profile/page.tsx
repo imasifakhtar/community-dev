@@ -1,8 +1,8 @@
 "use client";
 import React, { useEffect, useState } from "react";
-import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
-import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { Button } from "@/components/ui/button";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Calendar as CalendarIcon } from "lucide-react";
 
 interface User {
@@ -12,14 +12,40 @@ interface User {
   company: string;
   dob: string;
   avatarUrl?: string;
+  _id?: string;
+}
+
+interface Reply {
+  user: {
+    firstName: string;
+    lastName: string;
+    email: string;
+    avatarUrl?: string;
+  };
+  text: string;
+  createdAt: string;
+}
+
+interface Comment {
+  user: {
+    firstName: string;
+    lastName: string;
+    email: string;
+    avatarUrl?: string;
+  };
+  text: string;
+  createdAt: string;
+  replies: Reply[];
 }
 
 interface Post {
   _id: string;
+  user: User;
   text?: string;
   imageUrl?: string;
   pdfUrl?: string;
   createdAt: string;
+  comments: Comment[];
 }
 
 export default function ProfilePage() {
@@ -27,6 +53,9 @@ export default function ProfilePage() {
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [commentInputs, setCommentInputs] = useState<{ [postId: string]: string }>({});
+  const [commentLoading, setCommentLoading] = useState<{ [postId: string]: boolean }>({});
+  const [commentError, setCommentError] = useState<{ [postId: string]: string }>({});
 
   useEffect(() => {
     async function fetchProfile() {
@@ -49,6 +78,35 @@ export default function ProfilePage() {
     }
     fetchProfile();
   }, []);
+
+  const handleCommentInput = (postId: string, value: string) => {
+    setCommentInputs((prev) => ({ ...prev, [postId]: value }));
+  };
+
+  const handleAddComment = async (postId: string) => {
+    setCommentLoading((prev) => ({ ...prev, [postId]: true }));
+    setCommentError((prev) => ({ ...prev, [postId]: "" }));
+    try {
+      const res = await fetch("/api/posts", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ postId, action: "comment", commentText: commentInputs[postId] }),
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.message || "Failed to add comment");
+      }
+      setCommentInputs((prev) => ({ ...prev, [postId]: "" }));
+      // Refetch posts to update comments
+      const postsRes = await fetch(`/api/posts?userId=${user?._id}`);
+      const postsData = await postsRes.json();
+      setPosts(postsData.posts || []);
+    } catch (err: unknown) {
+      setCommentError((prev) => ({ ...prev, [postId]: err instanceof Error ? err.message : "Failed to add comment" }));
+    } finally {
+      setCommentLoading((prev) => ({ ...prev, [postId]: false }));
+    }
+  };
 
   if (loading) {
     return <div className="flex justify-center items-center min-h-screen text-gray-500">Loading profile...</div>;
@@ -97,6 +155,16 @@ export default function ProfilePage() {
               {posts.map((post) => (
                 <div key={post._id} className="border-b pb-4 last:border-b-0 last:pb-0">
                   <div className="flex items-center gap-2 mb-1">
+                    <Avatar className="size-7">
+                      {user.avatarUrl ? (
+                        <AvatarImage src={user.avatarUrl} alt="avatar" />
+                      ) : null}
+                      <AvatarFallback>
+                        {user.firstName[0]}
+                        {user.lastName[0]}
+                      </AvatarFallback>
+                    </Avatar>
+                    <span className="font-semibold text-gray-800">{user.firstName} {user.lastName}</span>
                     <span className="text-xs text-gray-400">{new Date(post.createdAt).toLocaleString()}</span>
                   </div>
                   {post.text && <div className="mb-2 text-gray-800">{post.text}</div>}
@@ -112,6 +180,53 @@ export default function ProfilePage() {
                       </a>
                     </div>
                   )}
+                  {/* Comments Section */}
+                  <div className="mt-4 bg-gray-50 rounded-xl p-4">
+                    <h3 className="text-sm font-semibold text-gray-700 mb-2">Discussion</h3>
+                    <div className="space-y-3 mb-2">
+                      {post.comments && post.comments.length > 0 ? (
+                        post.comments.map((comment, idx) => (
+                          <div key={idx} className="flex items-start gap-2">
+                            <Avatar className="size-7">
+                              {comment.user.avatarUrl ? (
+                                <AvatarImage src={comment.user.avatarUrl} alt="avatar" />
+                              ) : null}
+                              <AvatarFallback>
+                                {comment.user?.firstName && comment.user.firstName.length > 0 ? comment.user.firstName[0] : '?'}
+                                {comment.user?.lastName && comment.user.lastName.length > 0 ? comment.user.lastName[0] : ''}
+                              </AvatarFallback>
+                            </Avatar>
+                            <div className="flex-1">
+                              <div className="text-xs font-semibold text-gray-800 flex items-center gap-2">
+                                {comment.user.firstName} {comment.user.lastName}
+                                <span className="text-gray-400 font-normal">{new Date(comment.createdAt).toLocaleString()}</span>
+                              </div>
+                              <div className="text-sm text-gray-700">{comment.text}</div>
+                            </div>
+                          </div>
+                        ))
+                      ) : (
+                        <div className="text-xs text-gray-400">No comments yet.</div>
+                      )}
+                    </div>
+                    <div className="flex items-end gap-2 mt-2">
+                      <Textarea
+                        placeholder="Write a comment..."
+                        value={commentInputs[post._id] || ""}
+                        onChange={e => handleCommentInput(post._id, e.target.value)}
+                        className="min-h-8 h-8 resize-none"
+                        disabled={commentLoading[post._id]}
+                      />
+                      <Button
+                        size="sm"
+                        onClick={() => handleAddComment(post._id)}
+                        disabled={commentLoading[post._id] || !(commentInputs[post._id] && commentInputs[post._id].trim())}
+                      >
+                        {commentLoading[post._id] ? "Posting..." : "Post"}
+                      </Button>
+                    </div>
+                    {commentError[post._id] && <div className="text-xs text-red-500 mt-1">{commentError[post._id]}</div>}
+                  </div>
                 </div>
               ))}
             </div>

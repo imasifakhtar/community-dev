@@ -1,10 +1,7 @@
 import {
   BoltIcon,
-  BookOpenIcon,
-  Layers2Icon,
   LogOutIcon,
-  PinIcon,
-  UserPenIcon,
+  User,
 } from "lucide-react"
 
 import {
@@ -22,6 +19,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import Link from "next/link";
 
 type UserMenuProps = {
   onLogout?: () => void;
@@ -63,30 +61,18 @@ export default function UserMenu({ onLogout, user }: UserMenuProps) {
         <DropdownMenuSeparator />
         <DropdownMenuGroup>
           <DropdownMenuItem>
-            <BoltIcon size={16} className="opacity-60" aria-hidden="true" />
-            <span>Option 1</span>
-          </DropdownMenuItem>
-          <DropdownMenuItem>
-            <Layers2Icon size={16} className="opacity-60" aria-hidden="true" />
-            <span>Option 2</span>
-          </DropdownMenuItem>
-          <DropdownMenuItem>
-            <BookOpenIcon size={16} className="opacity-60" aria-hidden="true" />
-            <span>Option 3</span>
+            <User size={16} className="opacity-60" aria-hidden="true" />
+            <Link href={'/profile'}>Profile</Link>
           </DropdownMenuItem>
         </DropdownMenuGroup>
         <DropdownMenuSeparator />
         <DropdownMenuGroup>
           <DropdownMenuItem>
-            <PinIcon size={16} className="opacity-60" aria-hidden="true" />
-            <span>Option 4</span>
-          </DropdownMenuItem>
-          <DropdownMenuItem>
-            <UserPenIcon size={16} className="opacity-60" aria-hidden="true" />
-            <span>Option 5</span>
+            <BoltIcon size={16} className="opacity-60" aria-hidden="true" />
+            <Link href={'/profile/edit'}>Settings</Link>
           </DropdownMenuItem>
         </DropdownMenuGroup>
-        <DropdownMenuSeparator />
+        
         <DropdownMenuItem onClick={onLogout} className="cursor-pointer">
           <LogOutIcon size={16} className="opacity-60" aria-hidden="true" />
           <span>Logout</span>

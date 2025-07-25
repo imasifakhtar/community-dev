@@ -4,6 +4,13 @@ import Post from "@/app/models/Post";
 import User from "@/app/models/User";
 import { jwtVerify } from "jose";
 
+interface PopulatedCommentUser {
+  firstName: string;
+  lastName: string;
+  email: string;
+  avatarUrl?: string;
+}
+
 const JWT_SECRET = process.env.JWT_SECRET || "changeme";
 const MONGODB_URI = process.env.MONGODB_URI!;
 const CLOUDINARY_UPLOAD_PRESET = process.env.CLOUDINARY_UPLOAD_PRESET;
@@ -76,7 +83,7 @@ export async function POST(req: NextRequest) {
     downvotes: [],
     comments: [],
   });
-  await post.populate("user", "firstName lastName email avatarUrl");
+  await post.populate("user", "firstName lastName email avatarUrl role calendly");
   return NextResponse.json({ post });
 }
 
@@ -88,11 +95,31 @@ export async function GET(req: NextRequest) {
   const skip = (page - 1) * limit;
   const total = await Post.countDocuments();
   const posts = await Post.find()
-    .populate("user", "firstName lastName email avatarUrl")
+    .populate("user", "firstName lastName email avatarUrl role calendly")
     .sort({ createdAt: -1 })
     .skip(skip)
     .limit(limit)
     .lean();
+  // Populate user info for each comment
+  for (const post of posts) {
+    if (post.comments) {
+      for (const comment of post.comments) {
+        // Only populate if comment.user is an ObjectId (not already an object)
+        if (typeof comment.user === "object" && "firstName" in comment.user) continue;
+        const commentUser = await User.findById(comment.user as mongoose.Types.ObjectId).select("firstName lastName email avatarUrl");
+        if (commentUser) {
+          (comment.user as unknown as PopulatedCommentUser) = {
+            firstName: commentUser.firstName,
+            lastName: commentUser.lastName,
+            email: commentUser.email,
+            avatarUrl: commentUser.avatarUrl,
+          };
+        } else {
+          (comment.user as unknown as PopulatedCommentUser) = { firstName: "?", lastName: "", email: "", avatarUrl: undefined };
+        }
+      }
+    }
+  }
   return NextResponse.json({ posts, total });
 }
 
@@ -102,8 +129,22 @@ export async function PATCH(req: NextRequest) {
   const { postId, action, commentText, replyText, replyToCommentId } = await req.json();
   const post = await Post.findById(postId);
   if (!post) return NextResponse.json({ message: "Post not found" }, { status: 404 });
-  
-  if (action === "comment") {
+
+  if (action === "upvote") {
+    // Remove from downvotes if present
+    post.downvotes = post.downvotes.filter((id: mongoose.Types.ObjectId) => id.toString() !== (user._id as mongoose.Types.ObjectId).toString());
+    // Add to upvotes if not present
+    if (!post.upvotes.some((id: mongoose.Types.ObjectId) => id.toString() === (user._id as mongoose.Types.ObjectId).toString())) {
+      post.upvotes.push(user._id as mongoose.Types.ObjectId);
+    }
+  } else if (action === "downvote") {
+    // Remove from upvotes if present
+    post.upvotes = post.upvotes.filter((id: mongoose.Types.ObjectId) => id.toString() !== (user._id as mongoose.Types.ObjectId).toString());
+    // Add to downvotes if not present
+    if (!post.downvotes.some((id: mongoose.Types.ObjectId) => id.toString() === (user._id as mongoose.Types.ObjectId).toString())) {
+      post.downvotes.push(user._id as mongoose.Types.ObjectId);
+    }
+  } else if (action === "comment") {
     post.comments.push({ user: user._id as mongoose.Types.ObjectId, text: commentText, createdAt: new Date(), replies: [] });
   } else if (action === "edit") {
     if (post.user.toString() !== (user._id as mongoose.Types.ObjectId).toString()) {

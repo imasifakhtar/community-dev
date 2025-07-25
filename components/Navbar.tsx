@@ -15,7 +15,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { useEffect, useState } from "react";
+import useSWR from "swr";
 
 const defaultLinks = [
   { href: "/", label: "Home" },
@@ -28,35 +28,18 @@ const userLinks = [
   { href: "/profile", label: "Profile" },
 ];
 
-export default function Navbar() {
-  const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true);
+const fetcher = (url: string) => fetch(url).then(res => res.json());
 
-  useEffect(() => {
-    async function fetchUser() {
-      setLoading(true);
-      try {
-        const res = await fetch("/api/auth/me");
-        if (res.ok) {
-          const data = await res.json();
-          setUser(data.user);
-        } else {
-          setUser(null);
-        }
-      } catch {
-        setUser(null);
-      } finally {
-        setLoading(false);
-      }
-    }
-    fetchUser();
-  }, []);
+export default function Navbar() {
+  const { data, isLoading, mutate } = useSWR("/api/auth/session", fetcher, { refreshInterval: 0 });
+  const user = data?.user;
+  const isAuthenticated = data?.isAuthenticated;
 
   const handleLogout = async () => {
     try {
       await fetch("/api/auth/logout", { method: "POST" });
     } catch {}
-    setUser(null);
+    mutate();
     window.location.href = "/auth/login";
   };
 
@@ -103,7 +86,7 @@ export default function Navbar() {
             <PopoverContent align="start" className="w-36 p-1 md:hidden">
               <NavigationMenu className="max-w-none *:w-full">
                 <NavigationMenuList className="flex-col items-start gap-0 md:gap-2">
-                  {(user ? userLinks : defaultLinks).map((link, index) => (
+                  {(isAuthenticated ? userLinks : defaultLinks).map((link, index) => (
                     <NavigationMenuItem key={index} className="w-full">
                       <NavigationMenuLink href={link.href} className="py-1.5">
                         {link.label}
@@ -122,7 +105,7 @@ export default function Navbar() {
             {/* Navigation menu */}
             <NavigationMenu className="max-md:hidden">
               <NavigationMenuList className="gap-2">
-                {(user ? userLinks : defaultLinks).map((link, index) => (
+                {(isAuthenticated ? userLinks : defaultLinks).map((link, index) => (
                   <NavigationMenuItem key={index}>
                     <NavigationMenuLink
                       href={link.href}
@@ -138,9 +121,9 @@ export default function Navbar() {
         </div>
         {/* Right side */}
         <div className="flex items-center gap-4">
-          {loading ? (
+          {isLoading ? (
             <div className="text-muted-foreground text-sm">Loading...</div>
-          ) : user ? (
+          ) : isAuthenticated && user ? (
             <>
               <div className="flex items-center gap-2">
                 {/* Info menu */}
@@ -148,13 +131,13 @@ export default function Navbar() {
                 {/* Notification */}
                 <NotificationMenu />
               </div>
-              {/* User menu with logout */}
+              {/* User menu with avatar */}
               <UserMenu onLogout={handleLogout} user={user} />
             </>
           ) : (
             <>
               <Button asChild variant="ghost" size="sm" className="text-sm">
-                <a href="/auth/login">Sign In</a>
+                <a href="/auth/login">Log In</a>
               </Button>
               <Button asChild size="sm" className="text-sm">
                 <a href="/auth/signup">Get Started</a>
